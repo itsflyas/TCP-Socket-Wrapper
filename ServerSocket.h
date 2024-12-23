@@ -113,17 +113,15 @@ public:
   /**
    * Send data on the socket.
    * 
-   * @param data the data to send
+   * @param t_data the data to send
    * 
    * @return the number of bytes sent, or -1 if an error occurs.
    */
-  int sendData(std::string data){
-    int n;
-
-    if((n = send(this->m_socket_id,(char*)data.c_str(), (size_t)data.size(), 0)) < 0){
+  int sendData(std::string t_data){
+    if((this->m_bytes = send(this->m_socket_id,(char*)t_data.c_str(), (size_t)t_data.size(), 0)) < 0){
       return -1;
     }
-    return n;
+    return this->m_bytes;
 
 
   }
