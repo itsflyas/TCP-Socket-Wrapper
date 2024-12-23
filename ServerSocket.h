@@ -1,15 +1,15 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <vector>
+#include <algorithm>
 
 class ServerSocket{
 private:
   struct sockaddr_in m_sockaddr_server;
-  struct sockaddr_in m_sockaddr_client;
+  std::vector<int> m_communication_socket_ids = {};
+  std::vector<struct sockaddr_in> m_sockaddr_clients = {};
   int m_socket_port;
   int m_socket_id;
-  int m_communication_socket_id;
-  int m_client_addr_size = sizeof(this->m_sockaddr_client);
   int m_server_addr_size;
   int m_bytes;
   std::string m_ip_address;
@@ -48,7 +48,7 @@ public:
     }
 
   /**
-   * Perform a bind on the socket.
+   * Perform a connect and a bind on the socket.
    * 
    * @return 0, -1 if an error occurs.
    */
@@ -68,24 +68,44 @@ public:
     return 0;
   }
 
+  /**
+   * Method to accept an incoming connection on the socket and store it's details.
+   * 
+   * @return the new SocketFD of the accepted client.
+   */
   int acceptConnection(){
-    this->m_communication_socket_id = accept(this->m_socket_id, (struct sockaddr*)&this->m_sockaddr_client, &this->m_client_addr_size);
-    return this->m_communication_socket_id;
+    struct sockaddr_in sockaddr_client;
+    int client_addr_size = sizeof(sockaddr_client);
+    int communication_socket_id = accept(this->m_socket_id, (struct sockaddr*)&sockaddr_client, &client_addr_size);
+    this->m_communication_socket_ids.push_back(communication_socket_id);
+    this->m_sockaddr_clients.push_back(sockaddr_client);
+
+    return communication_socket_id;
+  }
+
+  /**
+   * Method to get the last connected client to the server.
+   * 
+   * @return the SocketFD of the last connected client.
+   */
+  int getLastConnectedClient(){
+    return m_communication_socket_ids.back();
   }
 
   /**
    * Receive incoming data on the socket.
    * 
+   * @param t_communication_socket_id the SocketFD to receive data
    * @return the received data, or an empty string if an error occurs
    */
-  std::string receiveData(){
+  std::string receiveData(int t_communication_socket_id){
       this->m_buffer_string = "";
 
-      if((this->m_bytes = recv(this->m_communication_socket_id, (char*)this->m_buffer, (size_t)sizeof(this->m_buffer), 0)) > 0){
+      if((this->m_bytes = recv(t_communication_socket_id, (char*)this->m_buffer, (size_t)sizeof(this->m_buffer), 0)) > 0){
         this->m_buffer_string.append(this->m_buffer, this->m_bytes);
         return this->m_buffer_string;
       } else {
-        this->disconnectSocket();
+        this->disconnectClientSocket(t_communication_socket_id);
         return "";
       }
     }
@@ -109,13 +129,28 @@ public:
   }
 
   /**
-   * Disconnects the socket.
+   * Disconnects the server socket.
    * 
    * @return 0
    */
   int disconnectSocket(){
     closesocket(this->m_socket_id);
     WSACleanup();
+    return 0;
+  }
+
+  /**
+   * Method to disconnect the Socket and delete the relative data of a specific client.
+   * 
+   * @param t_communication_socket_id the SocketFD of the client.
+   * @return 0.
+   */
+  int disconnectClientSocket(int t_communication_socket_id){
+    closesocket(t_communication_socket_id);
+    std::vector<int>::iterator iterator = std::find(this->m_communication_socket_ids.begin(), this->m_communication_socket_ids.end(), t_communication_socket_id);
+    int index = std::distance(this->m_communication_socket_ids.begin(), iterator);
+    this->m_communication_socket_ids.erase(this->m_communication_socket_ids.begin() + index);
+    this->m_sockaddr_clients.erase(this->m_sockaddr_clients.begin() + index);
     return 0;
   }
 };

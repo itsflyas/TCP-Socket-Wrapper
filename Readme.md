@@ -1,7 +1,8 @@
 # TCP-Socket-Wrapper (C++)
 
 These wrappers are meant to speed up the declaration of a TCP Socket Connection in C++ on Windows.
-- Multi platform version and multi client connection is coming.
+- Multi platform version is coming.
+- Multi client connection supported via threads.
 - Includes 2 main files to test the headers.
 
 

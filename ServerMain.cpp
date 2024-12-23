@@ -2,6 +2,24 @@
 #include <unistd.h>
 #include "ServerSocket.h"
 
+// Function executed in the thread
+DWORD WINAPI handleThread(LPVOID t_server_socket) {
+  ServerSocket* server_socket = (ServerSocket*)t_server_socket;
+  std::string buffer;
+  int communication_socket_id = server_socket->getLastConnectedClient();
+
+  while(true){
+    buffer = server_socket->receiveData(communication_socket_id);
+    if(buffer == ""){
+      break;
+    }
+    std::cout<<communication_socket_id<<":"<<buffer;
+  }
+
+  std::cout<<"Client "<<communication_socket_id<<" disconnected.\n";
+  return 0;
+}
+
 // Main file to test ServerSocket.h
 int main(){
   std::string ip_address = "0.0.0.0";
@@ -17,21 +35,15 @@ int main(){
 
   std::cout<<"Server is listening... \n";
 
-  if(server_socket->acceptConnection() != SOCKET_ERROR){
-    std::cout<<"Client accepted. \n";
-  }
-  
-  std::string buffer;
-
   while(true){
-    buffer = server_socket->receiveData();
-    if(buffer == ""){
-      break;
+    if(server_socket->acceptConnection() != SOCKET_ERROR){
+    std::cout<<"New client accepted. \n";
+    HANDLE thread = CreateThread(NULL, 0, handleThread, LPVOID(server_socket), 0, NULL);
     }
-    std::cout<<buffer;
   }
 
-  std::cout<<"All clients lost connection, exiting program. \n";
+  std::cout<<"Server was shutted down, exiting program. \n";
   server_socket->disconnectSocket();
+  delete server_socket;
   return -1;
 }

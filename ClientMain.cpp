@@ -26,5 +26,6 @@ int main(){
   }
 
   client_socket->disconnectSocket();
+  delete client_socket;
   return -1;
 }
